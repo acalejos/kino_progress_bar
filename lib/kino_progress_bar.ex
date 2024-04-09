@@ -2,35 +2,33 @@ defmodule KinoProgressBar do
   use Kino.JS
   use Kino.JS.Live
 
+  @ets :kino_progress_bar
+  @update_interval 100
+
   def new(opts \\ []) do
-    opts = Keyword.validate!(opts, value: 0, max: 1)
+    if :ets.whereis(@ets) == :undefined do
+      @ets =
+        :ets.new(@ets, [:set, :named_table, read_concurrency: false, write_concurrency: false])
+    end
+
+    opts = Keyword.validate!(opts, [:max, value: 0])
     Kino.JS.Live.new(__MODULE__, {opts[:value], opts[:max]})
   end
 
   def from_enumerable(enumerable, progress_bar) do
-    # milliseconds
-    update_interval = 100
-
-    Kino.JS.Live.cast(progress_bar, {:update, %{value: 0, max: Enum.count(enumerable)}})
+    save(progress_bar.pid, 0)
+    send(progress_bar.pid, {:set_progress_bar, progress_bar})
+    send(progress_bar.pid, :sample)
 
     Stream.transform(
       enumerable,
-      fn -> {1, :erlang.system_time(:millisecond)} end,
-      fn item, {acc, delta} ->
-        current_time = :erlang.system_time(:millisecond)
-
-        delta =
-          if current_time - delta >= update_interval do
-            Kino.JS.Live.cast(progress_bar, {:update, %{value: acc, max: nil}})
-            current_time
-          else
-            delta
-          end
-
-        {[item], {acc + 1, delta}}
+      fn -> 0 end,
+      fn item, acc ->
+        save(progress_bar.pid, item)
+        {[item], acc + 1}
       end,
-      fn {acc, _delta} ->
-        Kino.JS.Live.cast(progress_bar, {:update, %{value: acc, max: nil}})
+      fn acc ->
+        Kino.JS.Live.cast(progress_bar, {:done, acc})
       end
     )
   end
@@ -41,13 +39,20 @@ defmodule KinoProgressBar do
 
   @impl true
   def init({value, max}, ctx) do
-    {:ok, assign(ctx, max: max, value: value)}
+    {:ok, assign(ctx, max: max, value: value, done: false)}
   end
 
   @impl true
   def handle_connect(ctx) do
-    value = if ctx.assigns.value, do: ~s(value="#{ctx.assigns.value}"), else: ""
-    html = ~s(<progress id="kino_pb" #{value} max="#{ctx.assigns.max}"></progress>)
+    html = """
+      <div id="kino_pb" style="display: flex-row; height: 1.5rem;">
+        <progress style="height: 100%" value={ctx.assigns.value} max={if(@done, do: @value, else: @max)}>
+        </progress>
+        <span style="display: inline; font-size: 1rem">&nbsp;</span>
+        <span style="display: none; color: green; height: 100%; font-size: 1.5rem">&#10003;</span>
+      </div>
+    """
+
     {:ok, html, ctx}
   end
 
@@ -57,6 +62,36 @@ defmodule KinoProgressBar do
     {:noreply, assign(ctx, value: value, max: max)}
   end
 
+  @impl true
+  def handle_cast({:done, value}, ctx) do
+    broadcast_event(ctx, "done", %{value: value})
+    {:noreply, assign(ctx, done: true)}
+  end
+
+  @impl true
+  def handle_info({:set_progress_bar, progress_bar}, ctx) do
+    {:noreply, assign(ctx, progress_bar: progress_bar)}
+  end
+
+  @impl true
+  def handle_info(:sample, ctx) do
+    pid = self()
+    value = :ets.lookup_element(@ets, pid, 2)
+
+    now = System.system_time(:millisecond)
+
+    unless ctx.assigns.done do
+      Process.send_after(self(), :sample, @update_interval)
+    end
+
+    Kino.JS.Live.cast(ctx.assigns.progress_bar, {:update, %{value: value, max: ctx.assigns.max}})
+    {:noreply, assign(ctx, value: value, last_updated_at: now)}
+  end
+
+  defp save(pid, value) do
+    :ets.insert(@ets, {pid, value})
+  end
+
   asset "main.js" do
     """
     export function init(ctx, html) {
@@ -64,14 +99,25 @@ defmodule KinoProgressBar do
 
       ctx.handleEvent("update", ({max, value}) => {
         console.log(value);
-        let pb = document.getElementById("kino_pb");
+        const [pb, counter_span, _] = document.getElementById("kino_pb").children;
         if (max) {pb.max = max;}
         if (!value) {
           pb.removeAttribute('value')
-        } else{
+        } else {
           pb.value = value;
         }
+
+        counter_span.innerText = `${value}/${max || "???"}`;
       });
+
+      ctx.handleEvent("done", ({value}) => {
+        const [pb, counter_span, done_check] = document.getElementById("kino_pb").children;
+        pb.style.accentColor = "green";
+        pb.value = value;
+        pb.max = value;
+
+        done_check.style.display = "inline";
+      })
     }
     """
   end
