@@ -1,5 +1,6 @@
 {application,kino,
-             [{applications,[kernel,stdlib,elixir,logger,crypto,table,fss]},
+             [{optional_applications,[nx]},
+              {applications,[kernel,stdlib,elixir,logger,crypto,table,fss,nx]},
               {description,"Interactive widgets for Livebook"},
               {modules,['Elixir.Enumerable.Kino.Control',
                         'Elixir.Enumerable.Kino.Input',

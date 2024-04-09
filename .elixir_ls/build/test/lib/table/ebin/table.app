@@ -1,5 +1,6 @@
 {application,table,
-             [{applications,[kernel,stdlib,elixir]},
+             [{optional_applications,[]},
+              {applications,[kernel,stdlib,elixir]},
               {description,"Unified access to tabular data"},
               {modules,['Elixir.Enumerable.Table.Mapper',
                         'Elixir.Enumerable.Table.Zipper','Elixir.Table',

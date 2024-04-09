@@ -1,5 +1,6 @@
 {application,fss,
-             [{applications,[kernel,stdlib,elixir,logger]},
+             [{optional_applications,[]},
+              {applications,[kernel,stdlib,elixir,logger]},
               {description,"fss"},
               {modules,['Elixir.FSS','Elixir.FSS.HTTP',
                         'Elixir.FSS.HTTP.Config','Elixir.FSS.HTTP.Entry',
