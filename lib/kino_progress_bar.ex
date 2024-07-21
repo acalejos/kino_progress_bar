@@ -43,10 +43,10 @@ defmodule KinoProgressBar do
   end
 
   @impl true
-  def handle_connect(ctx) do
+  def handle_connect(%{assigns: %{value: value, done: done, max: max}} = ctx) do
     html = """
       <div id="kino_pb" style="display: flex-row; height: 1.5rem;">
-        <progress style="height: 100%" value={ctx.assigns.value} max={if(@done, do: @value, else: @max)}>
+        <progress style="height: 100%" value="#{value}" max="#{if(done, do: value, else: max)}">
         </progress>
         <span style="display: inline; font-size: 1rem">&nbsp;</span>
         <span style="display: none; color: green; height: 100%; font-size: 1.5rem">&#10003;</span>
