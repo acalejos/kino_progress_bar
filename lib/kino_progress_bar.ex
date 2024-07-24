@@ -11,8 +11,8 @@ defmodule KinoProgressBar do
         :ets.new(@ets, [:set, :named_table, read_concurrency: false, write_concurrency: false])
     end
 
-    opts = Keyword.validate!(opts, [:max, value: 0])
-    Kino.JS.Live.new(__MODULE__, {opts[:value], opts[:max]})
+    opts = Keyword.validate!(opts, [:max, value: 0, style: "height: 100%;"])
+    Kino.JS.Live.new(__MODULE__, {opts[:value], opts[:max], opts[:style]})
   end
 
   def from_enumerable(enumerable, progress_bar) do
@@ -38,15 +38,15 @@ defmodule KinoProgressBar do
   end
 
   @impl true
-  def init({value, max}, ctx) do
-    {:ok, assign(ctx, max: max, value: value, done: false)}
+  def init({value, max, style}, ctx) do
+    {:ok, assign(ctx, max: max, value: value, style: style, done: false)}
   end
 
   @impl true
-  def handle_connect(ctx) do
+  def handle_connect(%{assigns: %{value: value, done: done, max: max, style: style}} = ctx) do
     html = """
       <div id="kino_pb" style="display: flex-row; height: 1.5rem;">
-        <progress style="height: 100%" value={ctx.assigns.value} max={if(@done, do: @value, else: @max)}>
+        <progress style="#{style}" value="#{value}" max="#{if(done, do: value, else: max)}">
         </progress>
         <span style="display: inline; font-size: 1rem">&nbsp;</span>
         <span style="display: none; color: green; height: 100%; font-size: 1.5rem">&#10003;</span>
