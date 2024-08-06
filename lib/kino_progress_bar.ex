@@ -1,10 +1,31 @@
 defmodule KinoProgressBar do
+  @moduledoc """
+  A module for creating and managing progress bars in Livebook using Kino.
+
+  This module provides functionality to create interactive progress bars,
+  update their values, and handle progress for enumerables.
+  """
   use Kino.JS
   use Kino.JS.Live
 
   @ets :kino_progress_bar
   @update_interval 100
 
+  @doc """
+  Creates a new progress bar.
+
+  ## Options
+
+    * `:max` - The maximum value of the progress bar (required).
+    * `:value` - The initial value of the progress bar (default: 0).
+    * `:style` - CSS style to be applied to the progress bar (default: "height: 100%;").
+
+  ## Examples
+
+      iex> KinoProgressBar.new(max: 100)
+      iex> KinoProgressBar.new(max: 100, value: 50, style: "height: 20px; width: 100%;")
+
+  """
   def new(opts \\ []) do
     if :ets.whereis(@ets) == :undefined do
       @ets =
@@ -15,6 +36,21 @@ defmodule KinoProgressBar do
     Kino.JS.Live.new(__MODULE__, {opts[:value], opts[:max], opts[:style]})
   end
 
+  @doc """
+  Creates a progress bar from an enumerable, updating as the enumerable is processed.
+
+  ## Parameters
+
+    * `enumerable` - The enumerable to process.
+    * `progress_bar` - The progress bar created with `new/1`.
+
+  ## Examples
+
+      iex> progress_bar = KinoProgressBar.new(max: 100)
+      iex> KinoProgressBar.from_enumerable(1..100, progress_bar)
+      #Stream<...>
+
+  """
   def from_enumerable(enumerable, progress_bar) do
     save(progress_bar.pid, 0)
     send(progress_bar.pid, {:set_progress_bar, progress_bar})
@@ -33,6 +69,22 @@ defmodule KinoProgressBar do
     )
   end
 
+  @doc """
+  Updates the progress bar with a new value and optionally a new maximum.
+
+  ## Parameters
+
+    * `progress_bar` - The progress bar to update.
+    * `value` - The new value to set.
+    * `max` - The new maximum value (optional).
+
+  ## Examples
+
+      iex> progress_bar = KinoProgressBar.new(max: 100)
+      iex> KinoProgressBar.update(progress_bar, 50)
+      iex> KinoProgressBar.update(progress_bar, 75, 150)
+
+  """
   def update(progress_bar, value, max \\ nil) do
     Kino.JS.Live.cast(progress_bar, {:update, %{value: value, max: max}})
   end
