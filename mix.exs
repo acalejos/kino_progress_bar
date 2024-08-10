@@ -4,7 +4,7 @@ defmodule KinoProgressBar.MixProject do
   def project do
     [
       app: :kino_progress_bar,
-      version: "0.2.1",
+      version: "0.3.0",
       elixir: "~> 1.14",
       start_permanent: Mix.env() == :prod,
       deps: deps()
