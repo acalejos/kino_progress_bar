@@ -89,8 +89,93 @@ defmodule KinoProgressBar do
     Kino.JS.Live.cast(progress_bar, {:update, %{value: value}})
   end
 
+  @doc """
+  Updates the progress bar with a new value and a new maximum.
+
+  ## Parameters
+
+    * `progress_bar` - The progress bar to update.
+    * `value` - The new value to set.
+    * `max` - The new maximum value.
+
+  ## Examples
+
+      iex> progress_bar = KinoProgressBar.new(max: 100)
+      iex> KinoProgressBar.update(progress_bar, 75, 150)
+
+  """
   def update(progress_bar, value, max) do
     Kino.JS.Live.cast(progress_bar, {:update, %{value: value, max: max}})
+  end
+
+  @doc """
+  Increments the progress bar value by 1.
+
+  ## Parameters
+
+    * `progress_bar` - The progress bar to increment.
+
+  ## Examples
+
+      iex> progress_bar = KinoProgressBar.new(max: 100)
+      iex> KinoProgressBar.increment(progress_bar)
+
+  """
+  def increment(progress_bar) do
+    increment(progress_bar, 1)
+  end
+
+  @doc """
+  Increments the progress bar value by the specified step.
+
+  ## Parameters
+
+    * `progress_bar` - The progress bar to increment.
+    * `step` - The value to increment by.
+
+  ## Examples
+
+      iex> progress_bar = KinoProgressBar.new(max: 100)
+      iex> KinoProgressBar.increment(progress_bar, 5)
+
+  """
+  def increment(progress_bar, step) do
+    Kino.JS.Live.cast(progress_bar, {:increment, %{step: step}})
+  end
+
+  @doc """
+  Decrements the progress bar value by 1.
+
+  ## Parameters
+
+    * `progress_bar` - The progress bar to decrement.
+
+  ## Examples
+
+      iex> progress_bar = KinoProgressBar.new(max: 100)
+      iex> KinoProgressBar.decrement(progress_bar)
+
+  """
+  def decrement(progress_bar) do
+    decrement(progress_bar, 1)
+  end
+
+  @doc """
+  Decrements the progress bar value by the specified step.
+
+  ## Parameters
+
+    * `progress_bar` - The progress bar to decrement.
+    * `step` - The value to decrement by.
+
+  ## Examples
+
+      iex> progress_bar = KinoProgressBar.new(max: 100)
+      iex> KinoProgressBar.decrement(progress_bar, 5)
+
+  """
+  def decrement(progress_bar, step) do
+    Kino.JS.Live.cast(progress_bar, {:decrement, %{step: step}})
   end
 
   @impl true
@@ -121,6 +206,18 @@ defmodule KinoProgressBar do
   def handle_cast({:update, %{value: value, max: max} = updates}, ctx) do
     broadcast_event(ctx, "update", updates)
     {:noreply, assign(ctx, value: value, max: max)}
+  end
+
+  def handle_cast({:increment, %{step: step}}, ctx) do
+    value = ctx.assigns.value + step
+    broadcast_event(ctx, "update", %{value: value})
+    {:noreply, assign(ctx, value: value)}
+  end
+
+  def handle_cast({:decrement, %{step: step}}, ctx) do
+    value = ctx.assigns.value - step
+    broadcast_event(ctx, "update", %{value: value})
+    {:noreply, assign(ctx, value: value)}
   end
 
   @impl true

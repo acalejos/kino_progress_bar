@@ -16,7 +16,7 @@ Add `kino_progress_bar` to your list of dependencies in `mix.exs`:
 ```elixir
 def deps do
   [
-    {:kino_progress_bar, "~> 0.2.1"}
+    {:kino_progress_bar, "~> 0.3.0"}
   ]
 end
 ```
@@ -28,6 +28,12 @@ progress_bar = KinoProgressBar.new(max: 100)
 
 # Update the progress bar
 KinoProgressBar.update(progress_bar, 50)
+
+# Increment the value by 1
+KinoProgressBar.increment(progress_bar)
+
+# Decrement the value by arbitrary amount
+KinoProgressBar.decrement(progress_bar, 5)
 
 # Create a progress bar from an enumerable
 1..100
