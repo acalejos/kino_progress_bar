@@ -16,7 +16,7 @@ Add `kino_progress_bar` to your list of dependencies in `mix.exs`:
 ```elixir
 def deps do
   [
-    {:kino_progress_bar, "~> 0.1.0"}
+    {:kino_progress_bar, "~> 0.2.1"}
   ]
 end
 ```

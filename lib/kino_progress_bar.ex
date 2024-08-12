@@ -85,7 +85,11 @@ defmodule KinoProgressBar do
       iex> KinoProgressBar.update(progress_bar, 75, 150)
 
   """
-  def update(progress_bar, value, max \\ nil) do
+  def update(progress_bar, value) do
+    Kino.JS.Live.cast(progress_bar, {:update, %{value: value}})
+  end
+
+  def update(progress_bar, value, max) do
     Kino.JS.Live.cast(progress_bar, {:update, %{value: value, max: max}})
   end
 
@@ -109,6 +113,11 @@ defmodule KinoProgressBar do
   end
 
   @impl true
+  def handle_cast({:update, %{value: value} = updates}, ctx) do
+    broadcast_event(ctx, "update", updates)
+    {:noreply, assign(ctx, value: value, max: ctx.assigns.max)}
+  end
+
   def handle_cast({:update, %{value: value, max: max} = updates}, ctx) do
     broadcast_event(ctx, "update", updates)
     {:noreply, assign(ctx, value: value, max: max)}
@@ -148,7 +157,6 @@ defmodule KinoProgressBar do
     """
     export function init(ctx, html) {
       ctx.root.innerHTML = html;
-
       ctx.handleEvent("update", ({max, value}) => {
         console.log(value);
         const [pb, counter_span, _] = document.getElementById("kino_pb").children;
