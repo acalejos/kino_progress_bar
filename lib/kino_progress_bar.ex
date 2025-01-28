@@ -77,6 +77,8 @@ defmodule KinoProgressBar do
     * `progress_bar` - The progress bar to update.
     * `value` - The new value to set.
     * `max` - The new maximum value (optional).
+  ## Returns
+    The updated value.
 
   ## Examples
 
@@ -86,7 +88,7 @@ defmodule KinoProgressBar do
 
   """
   def update(progress_bar, value) do
-    Kino.JS.Live.cast(progress_bar, {:update, %{value: value}})
+    Kino.JS.Live.call(progress_bar, {:update, %{value: value}})
   end
 
   @doc """
@@ -97,7 +99,8 @@ defmodule KinoProgressBar do
     * `progress_bar` - The progress bar to update.
     * `value` - The new value to set.
     * `max` - The new maximum value.
-
+  ## Returns
+  The updated value.
   ## Examples
 
       iex> progress_bar = KinoProgressBar.new(max: 100)
@@ -105,7 +108,7 @@ defmodule KinoProgressBar do
 
   """
   def update(progress_bar, value, max) do
-    Kino.JS.Live.cast(progress_bar, {:update, %{value: value, max: max}})
+    Kino.JS.Live.call(progress_bar, {:update, %{value: value, max: max}})
   end
 
   @doc """
@@ -114,7 +117,8 @@ defmodule KinoProgressBar do
   ## Parameters
 
     * `progress_bar` - The progress bar to increment.
-
+  ## Returns
+    The updated value.
   ## Examples
 
       iex> progress_bar = KinoProgressBar.new(max: 100)
@@ -132,7 +136,8 @@ defmodule KinoProgressBar do
 
     * `progress_bar` - The progress bar to increment.
     * `step` - The value to increment by.
-
+  ## Returns
+    The updated value.
   ## Examples
 
       iex> progress_bar = KinoProgressBar.new(max: 100)
@@ -140,7 +145,7 @@ defmodule KinoProgressBar do
 
   """
   def increment(progress_bar, step) do
-    Kino.JS.Live.cast(progress_bar, {:increment, %{step: step}})
+    Kino.JS.Live.call(progress_bar, {:increment, %{step: step}})
   end
 
   @doc """
@@ -149,7 +154,8 @@ defmodule KinoProgressBar do
   ## Parameters
 
     * `progress_bar` - The progress bar to decrement.
-
+  ## Returns
+    The updated value.
   ## Examples
 
       iex> progress_bar = KinoProgressBar.new(max: 100)
@@ -167,7 +173,8 @@ defmodule KinoProgressBar do
 
     * `progress_bar` - The progress bar to decrement.
     * `step` - The value to decrement by.
-
+  ## Returns
+    The updated value.
   ## Examples
 
       iex> progress_bar = KinoProgressBar.new(max: 100)
@@ -175,7 +182,7 @@ defmodule KinoProgressBar do
 
   """
   def decrement(progress_bar, step) do
-    Kino.JS.Live.cast(progress_bar, {:decrement, %{step: step}})
+    Kino.JS.Live.call(progress_bar, {:decrement, %{step: step}})
   end
 
   @impl true
@@ -195,6 +202,34 @@ defmodule KinoProgressBar do
     """
 
     {:ok, html, ctx}
+  end
+
+  @impl true
+  def handle_call({:update, %{value: value} = updates},_from, ctx) do
+    broadcast_event(ctx, "update", updates)
+    ctx = assign(ctx, value: value, max: ctx.assigns.max)
+    {:reply, value, ctx}
+  end
+
+  @impl true
+  def handle_call({:update, %{value: value, max: max} = updates},_from, ctx) do
+    broadcast_event(ctx, "update", updates)
+    ctx = assign(ctx, value: value, max: max)
+    {:reply, value, ctx}
+  end
+
+  @impl true
+  def handle_call({:increment, %{step: step}},_from, ctx) do
+    value = ctx.assigns.value + step
+    broadcast_event(ctx, "update", %{value: value})
+    {:reply,value, assign(ctx, value: value)}
+  end
+
+  @impl true
+  def handle_call({:decrement, %{step: step}},_from, ctx) do
+    value = ctx.assigns.value - step
+    broadcast_event(ctx, "update", %{value: value})
+    {:reply,value, assign(ctx, value: value)}
   end
 
   @impl true
@@ -255,7 +290,6 @@ defmodule KinoProgressBar do
     export function init(ctx, html) {
       ctx.root.innerHTML = html;
       ctx.handleEvent("update", ({max, value}) => {
-        console.log(value);
         const [pb, counter_span, _] = document.getElementById("kino_pb").children;
         if (max) {pb.max = max;}
         if (!value) {
@@ -264,7 +298,7 @@ defmodule KinoProgressBar do
           pb.value = value;
         }
 
-        counter_span.innerText = `${value}/${max || "???"}`;
+        counter_span.innerText = `${value}/${pb.max || "???"}`;
       });
 
       ctx.handleEvent("done", ({value}) => {
